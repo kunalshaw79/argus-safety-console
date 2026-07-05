@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ARGUS — Refinery Safety Console</title>
+<title>SPNG.AI — Live Feed Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -31,7 +31,9 @@
   /* TOPBAR */
   .topbar{display:flex;align-items:center;gap:18px;padding:0 18px;border-bottom:1px solid var(--line);background:var(--bg-2)}
   .brand{display:flex;align-items:center;gap:11px}
-  .wordmark{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:.14em}
+  .logomark{font-family:var(--disp);font-weight:700;font-size:16px;letter-spacing:-.04em;color:#fff;background:#12233B;
+    width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(15,30,55,.25)}
+  .wordmark{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:.06em}
   .wordmark small{display:block;font-family:var(--mono);font-weight:400;font-size:8.5px;letter-spacing:.32em;color:var(--faint);margin-top:-2px}
   .divider{width:1px;height:24px;background:var(--line-2)}
   .site{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:12px}
@@ -100,6 +102,17 @@
   .rec::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--crit);box-shadow:0 0 5px var(--crit);animation:pulse 1.3s infinite}
   .cam .zone{font-weight:600;color:#57e8ff}
   .cam.sev-crit .zone,.cam.sev-high .zone{color:#fff}
+
+  /* live scene-understanding caption (bottom bar) */
+  .cam .caption{position:absolute;left:11px;right:11px;bottom:24px;z-index:5;display:none;align-items:center;gap:7px;
+    padding:5px 9px;border-radius:6px;background:rgba(9,18,30,.62);border:1px solid rgba(255,255,255,.12);
+    font-family:var(--sans);font-size:10.5px;line-height:1.25;color:#eaf2fb;text-shadow:0 1px 2px rgba(0,0,0,.8);backdrop-filter:blur(2px)}
+  .cam.analysing .caption{display:flex}
+  .caption .cdot{width:7px;height:7px;border-radius:50%;background:#57e8ff;flex:none;box-shadow:0 0 6px #57e8ff;animation:pulse 1.2s infinite}
+  .cam.sev-med .caption .cdot{background:var(--med);box-shadow:0 0 6px var(--med)}
+  .cam.sev-high .caption .cdot{background:var(--high);box-shadow:0 0 6px var(--high)}
+  .cam.sev-crit .caption{border-color:var(--crit);background:rgba(60,10,14,.6)} .cam.sev-crit .caption .cdot{background:var(--crit);box-shadow:0 0 6px var(--crit)}
+  .caption .ctxt{font-weight:500}
 
   /* status strip along top: PPE / ZONE / PERSONS - like real VMS analytics */
   .cam .statline{position:absolute;top:34px;left:11px;z-index:5;display:flex;gap:6px;flex-wrap:wrap;max-width:80%}
@@ -266,7 +279,10 @@
 
   <!-- TOPBAR -->
   <div class="topbar">
-    <div class="brand"><div class="wordmark">ARGUS<small>REFINERY SAFETY CONSOLE</small></div></div>
+    <div class="brand">
+      <div class="logomark">SP</div>
+      <div class="wordmark">SPNG.AI<small>LIVE FEED INTELLIGENCE</small></div>
+    </div>
     <div class="divider"></div>
     <div class="site"><span class="code">RFNY-MNG</span><span>West Complex · Unit 4</span></div>
     <div class="spacer"></div>
@@ -339,7 +355,7 @@
     <div class="fcount"><span class="fdot med"></span><span class="n" id="cMed">0</span><span class="l">MEDIUM</span></div>
     <div class="fcount"><span class="fdot low"></span><span class="n" id="cLow">0</span><span class="l">LOW</span></div>
     <div class="spacer"></div>
-    <div class="fmeta" id="footMeta">FEEDS 6 · PPE 94% · ZONES 6 · MODEL argus-vision-2.4 · 30 FPS</div>
+    <div class="fmeta" id="footMeta">FEEDS 6 · PPE 94% · ZONES 6 · MODEL spng-vision-1 · 30 FPS</div>
   </div>
 </div>
 
@@ -387,56 +403,56 @@
   */
   const sections=[
     { code:"Z1", zone:"DERRICK FLOOR", cam:"CAM-07", geo:"29.760N 95.369W", src:V.derrick,
-      ppe:"ok", persons:1,
+      ppe:"ok", persons:1, scene:"Elevated work at derrick",
       box:{x:44,y:52,w:13,h:34},
       timeline:[
-        {t:0,   label:"person 0.94",            cls:"", box:{x:44,y:52,w:13,h:34}, status:"tracking worker"},
-        {t:2600,label:"worker · rising 0.92",   cls:"warn", box:{x:45,y:34,w:12,h:32}, status:"vertical displacement detected"},
-        {t:5200,label:"FALL / LIFT HAZARD 0.97",cls:"alarm", box:{x:46,y:16,w:12,h:30}, status:"restraint not detected"}],
+        {t:0,   label:"person 0.94",            cls:"", box:{x:44,y:52,w:13,h:34}, cap:"Worker on derrick floor near elevator"},
+        {t:2600,label:"worker · rising 0.92",   cls:"warn", box:{x:45,y:34,w:12,h:32}, cap:"Worker being lifted upward by elevator"},
+        {t:5200,label:"FALL / LIFT HAZARD 0.97",cls:"alarm", box:{x:46,y:16,w:12,h:30}, cap:"Derrickman hoisted by travelling block — no fall-arrest"}],
       sev:"crit", cause:"Derrickman lifted by travelling block — fall-arrest not verified", proc:"SOP-04 Working at Height" },
 
     { code:"Z2", zone:"DRILL FLOOR", cam:"CAM-12", geo:"29.761N 95.368W", src:V.driller,
-      ppe:"ok", persons:2,
+      ppe:"ok", persons:2, scene:"Pipe disconnection",
       box:{x:40,y:44,w:18,h:38},
       timeline:[
-        {t:0,   label:"person 0.93",           cls:"", box:{x:40,y:44,w:18,h:38}, status:"tracking driller"},
-        {t:3000,label:"hands in pinch-pt 0.88",cls:"warn", box:{x:46,y:52,w:11,h:16}, status:"attention lapse"},
-        {t:6000,label:"LINE-OF-FIRE 0.94",     cls:"alarm", box:{x:45,y:50,w:13,h:20}, status:"body inside hazard envelope"}],
+        {t:0,   label:"person 0.93",           cls:"", box:{x:40,y:44,w:18,h:38}, cap:"Driller handling pipe at drill floor"},
+        {t:3000,label:"hands in pinch-pt 0.88",cls:"warn", box:{x:46,y:52,w:11,h:16}, cap:"Hands entering pinch-point during disconnection"},
+        {t:6000,label:"LINE-OF-FIRE 0.94",     cls:"alarm", box:{x:45,y:50,w:13,h:20}, cap:"Attention lapse — body inside line-of-fire"}],
       sev:"high", cause:"Attention lapse — hands in pinch-point during pipe disconnection", proc:"SOP-11 Pipe Handling" },
 
     { code:"Z3", zone:"CASING DECK", cam:"CAM-04", geo:"29.762N 95.370W", src:V.casing,
-      ppe:"warn", persons:2,
+      ppe:"warn", persons:2, scene:"Casing lift",
       box:{x:44,y:14,w:13,h:30},
       timeline:[
-        {t:0,   label:"suspended load 0.90",cls:"", box:{x:44,y:14,w:13,h:30}, status:"tracking hoisted casing"},
-        {t:2400,label:"load swing 0.87",    cls:"warn", box:{x:38,y:22,w:14,h:34}, status:"lateral swing over deck"},
-        {t:4800,label:"DROPPED OBJECT 0.96",cls:"alarm", box:{x:34,y:52,w:16,h:30}, status:"load release detected"}],
+        {t:0,   label:"suspended load 0.90",cls:"", box:{x:44,y:14,w:13,h:30}, cap:"Casing suspended from hoist over deck"},
+        {t:2400,label:"load swing 0.87",    cls:"warn", box:{x:38,y:22,w:14,h:34}, cap:"Load swinging laterally across the deck"},
+        {t:4800,label:"DROPPED OBJECT 0.96",cls:"alarm", box:{x:34,y:52,w:16,h:30}, cap:"Casing released from hoist — dropped object"}],
       sev:"crit", cause:"Well casing released from hoist — dropped-object over personnel", proc:"SOP-07 Lifting Ops" },
 
     { code:"Z4", zone:"WAREHOUSE ROOF", cam:"CAM-19", geo:"29.759N 95.371W", src:V.roof,
-      ppe:"bad", persons:1,
+      ppe:"bad", persons:1, scene:"Work at height on roof",
       box:{x:42,y:24,w:14,h:38},
       timeline:[
-        {t:0,   label:"person on roof 0.95",  cls:"", box:{x:42,y:24,w:14,h:38}, status:"tracking worker"},
-        {t:3200,label:"near fragile panel 0.91",cls:"warn", box:{x:44,y:30,w:14,h:38}, status:"unsupported skylight ahead"},
-        {t:6400,label:"FALL FROM HEIGHT 0.99",cls:"alarm", box:{x:45,y:56,w:16,h:26}, status:"roof penetration — person down"}],
+        {t:0,   label:"person on roof 0.95",  cls:"", box:{x:42,y:24,w:14,h:38}, cap:"Worker walking across warehouse roof"},
+        {t:3200,label:"near fragile panel 0.91",cls:"warn", box:{x:44,y:30,w:14,h:38}, cap:"Approaching unsupported fragile skylight"},
+        {t:6400,label:"FALL FROM HEIGHT 0.99",cls:"alarm", box:{x:45,y:56,w:16,h:26}, cap:"Fell through roof panel — person down"}],
       sev:"crit", cause:"Worker fell through fragile roof panel — person down", proc:"SOP-04 Working at Height" },
 
     { code:"Z5", zone:"DERRICK · WIDE", cam:"CAM-22", geo:"29.760N 95.367W", src:V.derrick,
-      ppe:"ok", persons:3,
+      ppe:"ok", persons:3, scene:"Crew activity",
       box:{x:30,y:44,w:13,h:32},
       timeline:[
-        {t:0,   label:"3 persons 0.90",            cls:"", box:{x:30,y:44,w:13,h:32}, status:"tracking crew"},
-        {t:3600,label:"proximity to equipment 0.85",cls:"warn", box:{x:40,y:42,w:14,h:34}, status:"exclusion-zone incursion"}],
+        {t:0,   label:"3 persons 0.90",            cls:"", box:{x:30,y:44,w:13,h:32}, cap:"Crew of 3 working near rotating equipment"},
+        {t:3600,label:"proximity to equipment 0.85",cls:"warn", box:{x:40,y:42,w:14,h:34}, cap:"Crew inside equipment exclusion zone"}],
       sev:"med", cause:"Crew inside rotating-equipment exclusion zone", proc:"SOP-02 Barricading" },
 
     { code:"Z6", zone:"CASING · OVERHEAD", cam:"CAM-09", geo:"29.762N 95.372W", src:V.casing,
-      ppe:"ok", persons:2,
+      ppe:"ok", persons:2, scene:"Overhead lift",
       box:{x:46,y:20,w:15,h:30},
       timeline:[
-        {t:0,   label:"suspended load 0.89",   cls:"", box:{x:46,y:20,w:15,h:30}, status:"tracking load"},
-        {t:2800,label:"personnel under load 0.92",cls:"warn", box:{x:44,y:48,w:14,h:34}, status:"walk-under detected"},
-        {t:5600,label:"STRUCK-BY RISK 0.95",   cls:"alarm", box:{x:45,y:44,w:16,h:38}, status:"personnel in drop radius"}],
+        {t:0,   label:"suspended load 0.89",   cls:"", box:{x:46,y:20,w:15,h:30}, cap:"Load suspended overhead on casing deck"},
+        {t:2800,label:"personnel under load 0.92",cls:"warn", box:{x:44,y:48,w:14,h:34}, cap:"Personnel walking under the suspended load"},
+        {t:5600,label:"STRUCK-BY RISK 0.95",   cls:"alarm", box:{x:45,y:44,w:16,h:38}, cap:"Personnel inside drop radius — struck-by risk"}],
       sev:"crit", cause:"Personnel positioned under suspended load", proc:"SOP-07 Lifting Ops" }
   ];
 
@@ -471,6 +487,7 @@
       <div class="hud tr"><span class="zone">${s.zone}</span></div>
       <div class="hud bl">${s.proc}</div>
       <div class="hud br">1920&times;1080 · ${s.geo}</div>
+      <div class="caption" id="cap-${i}"><span class="cdot"></span><span class="ctxt">${s.timeline[0].cap}</span></div>
       <div class="flag"></div>
       <div class="drop"><span class="plus">&#43;</span>ASSIGN FEED<br>drop video or click</div>`;
     wall.appendChild(el);
@@ -677,15 +694,18 @@
   function runTimeline(t){
     const s=sections[t.idx];
     clearTimers(t); t.step=0;
-    // reset box to first step position at start of each loop
+    // reset box + caption to first step at start of each loop
     const det0=$(".det",t.el);
     const b0=s.timeline[0].box||s.box;
     det0.style.left=b0.x+"%";det0.style.top=b0.y+"%";det0.style.width=b0.w+"%";det0.style.height=b0.h+"%";
+    const cap0=$(".caption .ctxt",t.el); if(cap0) cap0.textContent=s.timeline[0].cap||"";
     s.timeline.forEach((step)=>{
       const id=setTimeout(()=>{
         if(!analysing)return;
         const det=$(".det",t.el), lab=$(".det .dl",t.el);
         lab.textContent=step.label;
+        // update live scene-understanding caption
+        const ctxt=$(".caption .ctxt",t.el); if(ctxt && step.cap) ctxt.textContent=step.cap;
         // move/resize box to physically track the subject
         if(step.box){ det.style.left=step.box.x+"%";det.style.top=step.box.y+"%";
           det.style.width=step.box.w+"%";det.style.height=step.box.h+"%"; }
@@ -808,7 +828,7 @@
 
   function updateCounts(){ $("#cCrit").textContent=counts.crit;$("#cHigh").textContent=counts.high;$("#cMed").textContent=counts.med;$("#cLow").textContent=counts.low; }
   function updateFooter(){ const loaded=tiles.filter(t=>t.video&&t.video.src).length;
-    $("#footMeta").textContent=`FEEDS ${tiles.length} · VIDEO ${loaded} · EVENTS ${eventCount} · MODEL argus-vision-2.4 · 30 FPS`; }
+    $("#footMeta").textContent=`FEEDS ${tiles.length} · VIDEO ${loaded} · EVENTS ${eventCount} · MODEL spng-vision-1 · 30 FPS`; }
 
   /* ── banner ── */
   const banner=$("#banner");
