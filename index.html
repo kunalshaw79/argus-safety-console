@@ -598,7 +598,7 @@
       </div>
       <div class="caption" id="cap-${i}"><span class="cdot"></span><span class="ctxt">${s.timeline[0].cap}</span></div>`;
     wall.appendChild(el);
-    const t={el,idx:i,alarms:new Map(),url:null,video:null,step:0,tlTimers:[]};
+    const t={el,idx:i,alarms:new Map(),url:null,video:null,step:0,tlTimers:[],stagger:2000+i*4000};
     tiles.push(t);
 
     el.addEventListener("click",()=>selectTile(i));
@@ -818,13 +818,15 @@
           det.style.width=step.box.w+"%";det.style.height=step.box.h+"%"; }
         det.classList.remove("warn","alarm");
         if(step.cls) det.classList.add(step.cls);
+        // Only the culminating ALARM step raises an event-log entry.
+        // warn/normal steps just update the tile visuals — no log spam.
         if(step.cls==="alarm"){ fireAlarm(t.idx,s.sev,true,s.cause); }
-        else if(step.cls==="warn"){ if(SEVORD[s.sev]<2) fireAlarm(t.idx,s.sev,true,s.cause); }
-      }, step.t + 800 + t.idx*250);
+      }, step.t + t.stagger);
       t.tlTimers.push(id);
     });
-    // loop the timeline to match looping video
-    const loopId=setTimeout(()=>{ if(analysing) runTimeline(t); }, 14000);
+    // loop the timeline slowly, staggered per feed, so alerts trickle in one at a time
+    const cycle=28000 + t.idx*3000;
+    const loopId=setTimeout(()=>{ if(analysing) runTimeline(t); }, cycle);
     t.tlTimers.push(loopId);
   }
   function clearTimers(t){ t.tlTimers.forEach(clearTimeout); t.tlTimers=[]; }
@@ -856,7 +858,7 @@
   function fireAlarm(camIdx,sevKey,auto,cause){
     const key=camIdx+"|"+sevKey;
     const now=Date.now();
-    if(auto && firedRecently[key] && now-firedRecently[key]<12000) return; // don't spam
+    if(auto && firedRecently[key] && now-firedRecently[key]<30000) return; // don't spam (30s)
     firedRecently[key]=now;
 
     const s=SEV[sevKey], t=tiles[camIdx], sec=sections[camIdx];
@@ -890,13 +892,12 @@
     const t=tiles[i]; let max=-1;
     t.alarms.forEach(sv=>{ if(SEVORD[sv]>max)max=SEVORD[sv]; });
     t.el.classList.remove("sev-med","sev-high","sev-crit","flagged");
-    if(max<0){ $(".flag",t.el).style.display="none"; return; }
-    const key=["low","med","high","crit"][max];
     const flag=$(".flag",t.el);
+    if(max<0){ if(flag) flag.style.display="none"; return; }
+    const key=["low","med","high","crit"][max];
     if(key!=="low") t.el.classList.add("sev-"+key);
     t.el.classList.add("flagged");
-    flag.textContent=SEV[key].label+" · "+sections[i].zone;
-    flag.style.background=SEV[key].col;
+    if(flag){ flag.textContent=SEV[key].label+" · "+sections[i].zone; flag.style.background=SEV[key].col; }
   }
 
   function updateZoneMap(i){
