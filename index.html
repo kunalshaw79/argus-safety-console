@@ -31,18 +31,11 @@
   ::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:4px}
   ::-webkit-scrollbar-track{background:transparent}
 
-  .app{display:grid;grid-template-rows:52px auto 56px 1fr 44px;height:100vh}
+  .app{display:grid;grid-template-rows:52px 56px 1fr 44px;height:100vh}
 
   /* TOPBAR */
   .topbar{display:flex;align-items:center;gap:18px;padding:0 18px;border-bottom:1px solid var(--line);background:rgba(5,5,6,.75);backdrop-filter:blur(8px)}
 
-  /* HERO BAND */
-  .hero{padding:26px 26px 24px;border-bottom:1px solid var(--line);background:
-    radial-gradient(ellipse 60% 120% at 20% 0%,rgba(59,167,255,.08),transparent 70%),rgba(5,5,6,.4)}
-  .hero-h{font-family:var(--disp);font-weight:700;font-size:29px;line-height:1.1;letter-spacing:-.01em;color:#fff;
-    text-shadow:0 0 18px rgba(255,255,255,.35),0 0 42px rgba(255,255,255,.12);margin-bottom:9px}
-  .hero-s{font-family:var(--sans);font-weight:400;font-size:14.5px;line-height:1.5;color:var(--dim);max-width:820px}
-  @media (max-width:1000px){.hero-h{font-size:22px}.hero-s{font-size:13px}}
   .brand{display:flex;align-items:center;gap:11px}
   .logomark{font-family:var(--disp);font-weight:700;font-size:16px;letter-spacing:-.04em;color:#0A0C10;background:#fff;
     width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(59,167,255,.3)}
@@ -88,10 +81,11 @@
 
   /* MAIN */
   .main{display:grid;grid-template-columns:minmax(0,1fr) 340px;overflow:hidden}
-  .content{overflow-y:auto;padding:20px 22px 24px;display:flex;flex-direction:column;gap:18px}
-  .section-hd{font-family:var(--disp);font-weight:700;font-size:29px;letter-spacing:-.01em;color:#fff;
-    text-shadow:0 0 14px rgba(255,255,255,.25)}
-  .section-sub{font-family:var(--sans);font-size:13.5px;line-height:1.5;color:var(--dim);max-width:900px;margin-top:-8px}
+  .content{overflow-y:auto;padding:18px 22px 24px;display:flex;flex-direction:column;gap:16px}
+  .section-hd{font-family:var(--disp);font-weight:600;font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:var(--text);
+    display:flex;align-items:center;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .section-hd::before{content:"";width:3px;height:15px;background:var(--cyan);border-radius:2px;box-shadow:0 0 8px var(--cyan)}
+  .section-sub{font-family:var(--sans);font-size:12.5px;line-height:1.5;color:var(--dim);max-width:900px;margin-top:-8px}
 
   /* MODEL COMPARISON */
   .cmp{display:grid;grid-template-columns:0.85fr 1fr 1fr;gap:16px;align-items:start}
@@ -345,12 +339,6 @@
     <div class="clock" id="clock">14:32:07</div>
   </div>
 
-  <!-- HERO BAND -->
-  <div class="hero">
-    <h1 class="hero-h">Nobody notices the wrong valve until it's the wrong valve.</h1>
-    <p class="hero-s">Computer vision that monitors high-risk plant operations and alerts on deviations as they happen.</p>
-  </div>
-
   <!-- CONTROL BAR -->
   <div class="ctrl">
     <button class="btn" id="loadBtn">&#43; LOAD FOOTAGE</button>
@@ -381,7 +369,7 @@
       <div class="wall c2" id="wall"></div>
 
       <!-- MODEL COMPARISON -->
-      <div class="section-hd" style="margin-top:14px">MODEL COMPARISON</div>
+      <div class="section-hd" style="margin-top:6px">MODEL COMPARISON</div>
       <p class="section-sub">Same feed, two models. SPNG.AI annotates and reasons in real time — flagging the SOP deviation before the incident. Gemini only narrates what happened, after the fact.</p>
       <div class="cmp">
         <!-- source feed -->
