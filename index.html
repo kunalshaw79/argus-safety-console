@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARGUS — Refinery Safety Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEF2F7; --bg-2:#F7F9FC; --panel:#FFFFFF; --panel-2:#F1F5FA;
+    --line:rgba(15,30,55,.10); --line-2:rgba(15,30,55,.18);
+    --text:#12233B; --dim:#5A6B82; --faint:#93A2B6;
+    --cyan:#0E9FBB; --cyan-dim:rgba(14,159,187,.12);
+    --green:#17A866;
+    --low:#0E9FBB; --med:#C67C0A; --high:#E4620E; --crit:#D8202F;
+    --crit-glow:rgba(216,32,47,.4);
+    --mono:"IBM Plex Mono",monospace; --sans:"IBM Plex Sans",system-ui,sans-serif; --disp:"Space Grotesk",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;overflow:hidden;
+    background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(14,159,187,.10),transparent 70%)}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  .app{display:grid;grid-template-rows:52px 56px 1fr 44px;height:100vh}
+
+  /* TOPBAR */
+  .topbar{display:flex;align-items:center;gap:18px;padding:0 18px;border-bottom:1px solid var(--line);background:var(--bg-2)}
+  .brand{display:flex;align-items:center;gap:11px}
+  .wordmark{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:.14em}
+  .wordmark small{display:block;font-family:var(--mono);font-weight:400;font-size:8.5px;letter-spacing:.32em;color:var(--faint);margin-top:-2px}
+  .divider{width:1px;height:24px;background:var(--line-2)}
+  .site{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:12px}
+  .site .code{color:var(--cyan)}
+  .spacer{flex:1}
+  .stat{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--dim)}
+  .stat .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+  .stat.analysing .dot{background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pulse 1s infinite}
+  .clock{font-family:var(--mono);font-size:16px;letter-spacing:.06em;min-width:88px;text-align:right}
+  .icobtn{width:34px;height:34px;border:1px solid var(--line-2);border-radius:7px;background:var(--panel);color:var(--dim);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .14s}
+  .icobtn:hover{border-color:var(--cyan);color:var(--cyan)}
+  .icobtn.off{color:var(--faint)}
+
+  /* CONTROL BAR */
+  .ctrl{display:flex;align-items:center;gap:12px;padding:0 18px;border-bottom:1px solid var(--line);background:var(--bg-2)}
+  .btn{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;padding:9px 15px;border-radius:7px;border:1px solid var(--line-2);
+    background:var(--panel);color:var(--text);cursor:pointer;transition:all .14s;white-space:nowrap}
+  .btn:hover{border-color:var(--cyan);color:var(--cyan)}
+  .btn:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  .btn.primary{background:linear-gradient(90deg,rgba(14,159,187,.20),rgba(14,159,187,.07));border-color:var(--cyan);color:var(--cyan);font-weight:600;letter-spacing:.1em}
+  .btn.primary:hover{background:var(--cyan);color:#fff}
+  .btn.primary.running{background:linear-gradient(90deg,rgba(23,168,102,.18),rgba(23,168,102,.06));border-color:var(--green);color:var(--green)}
+  .btn.primary.running:hover{background:rgba(216,32,47,.12);border-color:var(--crit);color:var(--crit)}
+  .seg{display:flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden}
+  .seg button{font-family:var(--mono);font-size:11px;padding:8px 11px;background:var(--panel);color:var(--dim);border:0;cursor:pointer;border-right:1px solid var(--line-2)}
+  .seg button:last-child{border-right:0}
+  .seg button.on{background:var(--panel-2);color:var(--cyan)}
+  .csep{width:1px;height:26px;background:var(--line-2)}
+  .selinfo{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .selinfo b{color:var(--cyan);font-weight:500}
+  .trig{display:flex;gap:6px}
+  .tbtn{font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:7px 10px;border-radius:6px;border:1px solid;background:transparent;cursor:pointer;transition:all .12s;font-weight:500}
+  .tbtn.low{color:var(--low);border-color:rgba(14,159,187,.45)} .tbtn.low:hover{background:rgba(14,159,187,.12)}
+  .tbtn.med{color:var(--med);border-color:rgba(198,124,10,.45)} .tbtn.med:hover{background:rgba(198,124,10,.12)}
+  .tbtn.high{color:var(--high);border-color:rgba(228,98,14,.45)} .tbtn.high:hover{background:rgba(228,98,14,.12)}
+  .tbtn.crit{color:var(--crit);border-color:rgba(216,32,47,.5)} .tbtn.crit:hover{background:rgba(216,32,47,.12)}
+  .hint{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+
+  /* MAIN */
+  .main{display:grid;grid-template-columns:minmax(0,1fr) 320px 300px;overflow:hidden}
+
+  .wall{padding:16px;overflow-y:auto;display:grid;gap:14px;align-content:start;grid-template-columns:repeat(2,1fr)}
+  .wall.c1{grid-template-columns:1fr}
+  .wall.c3{grid-template-columns:repeat(3,1fr)}
+
+  /* CAMERA TILE */
+  .cam{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;border:1.5px solid var(--line-2);
+    background:#0b0f16;cursor:pointer;transition:border-color .15s,box-shadow .2s;min-width:0;box-shadow:0 2px 10px rgba(15,30,55,.06)}
+  .cam.selected{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan),0 0 20px rgba(14,159,187,.25)}
+  .cam.sev-med{border-color:var(--med)}
+  .cam.sev-high{border-color:var(--high)}
+  .cam.sev-crit{border-color:var(--crit);box-shadow:0 0 0 1px var(--crit),0 0 24px var(--crit-glow)}
+  .cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+  .cam .scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#5A6B82;font-family:var(--mono);font-size:11px;background:#0b0f16}
+
+  /* no vignette - keep video fully visible */
+  .cam .vig{display:none}
+
+  .cam .hud{position:absolute;font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;color:#fff;
+    text-shadow:0 1px 3px rgba(0,0,0,.9);z-index:5}
+  .cam .hud.tl{top:9px;left:11px;display:flex;align-items:center;gap:7px}
+  .cam .hud.tr{top:9px;right:11px;text-align:right}
+  .cam .hud.bl{bottom:9px;left:11px} .cam .hud.br{bottom:9px;right:11px;text-align:right;color:rgba(255,255,255,.72)}
+  .rec{display:inline-flex;align-items:center;gap:5px;color:#ff9a9a}
+  .rec::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--crit);box-shadow:0 0 5px var(--crit);animation:pulse 1.3s infinite}
+  .cam .zone{font-weight:600;color:#57e8ff}
+  .cam.sev-crit .zone,.cam.sev-high .zone{color:#fff}
+
+  /* status strip along top: PPE / ZONE / PERSONS - like real VMS analytics */
+  .cam .statline{position:absolute;top:34px;left:11px;z-index:5;display:flex;gap:6px;flex-wrap:wrap;max-width:80%}
+  .pill{font-family:var(--mono);font-size:8px;letter-spacing:.05em;padding:2px 6px;border-radius:3px;font-weight:600;
+    background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;text-shadow:0 1px 3px rgba(0,0,0,1),0 0 4px rgba(0,0,0,.9)}
+  .pill.ok{border-color:#3fd98a;color:#8bf0c0}
+  .pill.warn{border-color:#ffb37a;color:#ffc79a}
+  .pill.bad{border-color:#ff8a92;color:#ffb0b6;background:transparent}
+
+  .cam .abadge{position:absolute;top:9px;left:50%;transform:translateX(-50%);z-index:5;display:none;
+    font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:#57e8ff;background:transparent;
+    padding:2px 8px;border-radius:4px;text-shadow:0 1px 3px rgba(0,0,0,1),0 0 5px rgba(0,0,0,.9)}
+  .cam.analysing .abadge{display:block}
+
+  /* detection reticle - corner brackets only (lines), no fill, no filter */
+  .det{position:absolute;z-index:3;background:none!important;border:0;display:none;
+    transition:left .6s cubic-bezier(.4,0,.2,1),top .6s cubic-bezier(.4,0,.2,1),width .6s cubic-bezier(.4,0,.2,1),height .6s cubic-bezier(.4,0,.2,1)}
+  .cam.analysing .det{display:block}
+  /* four corner brackets drawn with gradients on the box + its ::before/::after */
+  .det .c{position:absolute;width:12px;height:12px;pointer-events:none}
+  .det .c.tl{top:-1px;left:-1px;border-top:2px solid var(--rc,#57e8ff);border-left:2px solid var(--rc,#57e8ff)}
+  .det .c.tr{top:-1px;right:-1px;border-top:2px solid var(--rc,#57e8ff);border-right:2px solid var(--rc,#57e8ff)}
+  .det .c.bl{bottom:-1px;left:-1px;border-bottom:2px solid var(--rc,#57e8ff);border-left:2px solid var(--rc,#57e8ff)}
+  .det .c.br{bottom:-1px;right:-1px;border-bottom:2px solid var(--rc,#57e8ff);border-right:2px solid var(--rc,#57e8ff)}
+  .det .c{filter:drop-shadow(0 0 2px rgba(0,0,0,.9))}
+  .det{--rc:#57e8ff}
+  .det.warn{--rc:#E4620E} .det.alarm{--rc:#D8202F}
+  .det .dl{position:absolute;top:-14px;left:-1px;font-family:var(--mono);font-size:7.5px;background:transparent;color:var(--rc,#57e8ff);padding:0;white-space:nowrap;font-weight:700;letter-spacing:.02em;text-shadow:0 1px 3px rgba(0,0,0,1),0 0 4px rgba(0,0,0,.95)}
+
+  /* severity flag chip on tile */
+  .cam .flag{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);z-index:6;display:none;
+    font-family:var(--mono);font-size:9px;letter-spacing:.08em;font-weight:600;padding:3px 10px;border-radius:5px;white-space:nowrap;
+    box-shadow:0 2px 12px rgba(0,0,0,.35);color:#fff}
+  .cam.flagged .flag{display:block}
+
+  .cam .drop{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:.05em}
+  .cam .drop .plus{font-size:22px;color:var(--dim)}
+  .cam.dragover{border-color:var(--cyan)}
+
+  /* ── FLOOR PLAN PANEL ── */
+  .fp{border-left:1px solid var(--line);background:var(--bg-2);display:flex;flex-direction:column;overflow:hidden}
+  .fp-hd{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line)}
+  .fp-hd .t{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--faint)}
+  .fp-hd .lvl{font-family:var(--mono);font-size:10px;color:var(--dim)}
+  .fp-body{flex:1;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:10px}
+  .fp-map{position:relative;border:1px solid var(--line-2);border-radius:9px;background:linear-gradient(160deg,#0d1420,#0a0f18);overflow:hidden}
+  .fp-map svg{display:block;width:100%;height:auto}
+  .zg{cursor:pointer}
+  .zone-rect{fill:rgba(87,232,255,.03);stroke:rgba(87,232,255,.32);stroke-width:1.2;transition:all .3s}
+  .zg:hover .zone-rect{fill:rgba(87,232,255,.09)}
+  .zg.sel .zone-rect{stroke:#57e8ff;stroke-width:1.8;fill:rgba(87,232,255,.10)}
+  .zg.med .zone-rect{fill:rgba(198,124,10,.12);stroke:var(--med)}
+  .zg.high .zone-rect{fill:rgba(228,98,14,.15);stroke:var(--high)}
+  .zg.crit .zone-rect{fill:rgba(216,32,47,.18);stroke:var(--crit);animation:zonepulse 1s infinite}
+  .zg.locked .zone-rect{fill:rgba(60,10,14,.5);stroke:var(--crit);stroke-dasharray:5 3}
+  .zlabel{font-family:var(--mono);font-size:6.5px;fill:#8fa3bd;letter-spacing:.05em;pointer-events:none}
+  .zcode{font-family:var(--mono);font-size:8px;font-weight:600;fill:#cfe8ff;pointer-events:none}
+  .zg.crit .zcode,.zg.high .zcode{fill:#fff}
+  .zlock{font-family:var(--mono);font-size:8px;font-weight:700;fill:#ff9098;pointer-events:none;display:none;text-anchor:start}
+  .zg.locked .zlock{display:block}
+  .zdot{transition:all .3s}
+  .worker{color:#6fe0a0;transition:color .3s}
+  .zg.med .worker{color:#ffcf7a} .zg.high .worker{color:#ffb37a} .zg.crit .worker{color:#ff8a92} .zg.locked .worker{color:#ff8a92}
+  .zg.sel .worker{color:#7fe9ff}
+
+  .fp-legend{display:flex;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:9px;color:var(--dim)}
+  .fp-legend span{display:flex;align-items:center;gap:5px}
+  .lgd{width:9px;height:9px;border-radius:2px}
+
+  /* zone action card */
+  .zact{border:1px solid var(--line-2);border-radius:9px;background:var(--panel);padding:12px;display:flex;flex-direction:column;gap:9px}
+  .zact .zt{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--faint)}
+  .zact .zn{font-family:var(--disp);font-weight:600;font-size:15px}
+  .zact .zmeta{font-family:var(--mono);font-size:10px;color:var(--dim);line-height:1.6}
+  .zact .zmeta b{color:var(--text)}
+  .zact .zstatus{font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 8px;border-radius:5px;display:inline-block;align-self:flex-start}
+  .zstatus.nominal{background:rgba(23,168,102,.14);color:var(--green)}
+  .zstatus.hazard{background:rgba(216,32,47,.14);color:var(--crit)}
+  .zstatus.isolated{background:rgba(60,10,14,.14);color:var(--crit);border:1px solid var(--crit)}
+  .zbtns{display:flex;gap:8px}
+  .zbtn{flex:1;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:9px;border-radius:7px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);cursor:pointer;font-weight:600;transition:all .14s}
+  .zbtn.danger{border-color:var(--crit);color:var(--crit)} .zbtn.danger:hover{background:var(--crit);color:#fff}
+  .zbtn.restore{border-color:var(--green);color:var(--green)} .zbtn.restore:hover{background:var(--green);color:#fff}
+  .zbtn:disabled{opacity:.4;cursor:not-allowed}
+
+  /* ── ALARM STACK ── */
+  .stack{border-left:1px solid var(--line);background:var(--bg-2);display:flex;flex-direction:column;overflow:hidden}
+  .stack-hd{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line)}
+  .stack-hd .t{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--faint)}
+  .stack-hd .ackall{font-family:var(--mono);font-size:10px;color:var(--dim);cursor:pointer;padding:4px 8px;border:1px solid var(--line-2);border-radius:5px}
+  .stack-hd .ackall:hover{color:var(--cyan);border-color:var(--cyan)}
+  .alist{flex:1;overflow-y:auto;padding:8px}
+  .empty{padding:40px 20px;text-align:center;color:var(--faint);font-family:var(--mono);font-size:11px;line-height:1.7}
+  .alarm{display:grid;grid-template-columns:4px 1fr;gap:11px;padding:11px 12px;border-radius:7px;margin-bottom:6px;background:var(--panel);animation:slidein .3s ease;box-shadow:0 1px 4px rgba(15,30,55,.06)}
+  .alarm .bar{border-radius:2px}
+  .alarm.acked{opacity:.42}
+  .alarm .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+  .chip{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;font-weight:600;padding:2px 7px;border-radius:4px}
+  .alarm .time{font-family:var(--mono);font-size:9.5px;color:var(--faint)}
+  .alarm .desc{font-size:12px;line-height:1.4;color:var(--text)}
+  .alarm .cam-l{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:5px;display:flex;justify-content:space-between;align-items:center}
+  .alarm .ack{font-family:var(--mono);font-size:9px;color:var(--faint);cursor:pointer;padding:2px 7px;border:1px solid var(--line-2);border-radius:4px}
+  .alarm .ack:hover{color:var(--text);border-color:var(--dim)}
+  .alarm.acked .ack{visibility:hidden}
+  .sev-low{--sc:var(--low)} .sev-med{--sc:var(--med)} .sev-high{--sc:var(--high)} .sev-crit{--sc:var(--crit)}
+  .alarm .bar{background:var(--sc)} .alarm .chip{background:var(--sc);color:#fff}
+
+  /* FOOTER */
+  .foot{display:flex;align-items:center;gap:0;border-top:1px solid var(--line);background:var(--bg-2);padding:0 18px;font-family:var(--mono);font-size:11px}
+  .fcount{display:flex;align-items:center;gap:8px;padding:0 18px;height:100%;border-right:1px solid var(--line)}
+  .fcount:first-child{padding-left:0}
+  .fcount .n{font-family:var(--disp);font-size:18px;font-weight:600}
+  .fcount .l{color:var(--faint);font-size:9.5px;letter-spacing:.1em}
+  .fdot{width:8px;height:8px;border-radius:50%}
+  .fdot.crit{background:var(--crit)} .fdot.high{background:var(--high)} .fdot.med{background:var(--med)} .fdot.low{background:var(--low)}
+  .foot .spacer{flex:1}
+  .fmeta{color:var(--dim)}
+
+  /* BANNER */
+  .banner{position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-160%);z-index:80;
+    display:flex;align-items:center;gap:15px;padding:13px 18px;border-radius:10px;min-width:560px;
+    transition:transform .4s cubic-bezier(.2,1,.3,1);backdrop-filter:blur(6px)}
+  .banner.show{transform:translateX(-50%) translateY(0)}
+  .banner.crit{background:linear-gradient(90deg,rgba(216,32,47,.16),rgba(255,255,255,.96));border:1px solid var(--crit);box-shadow:0 12px 44px rgba(216,32,47,.22)}
+  .banner.high{background:linear-gradient(90deg,rgba(228,98,14,.15),rgba(255,255,255,.96));border:1px solid var(--high);box-shadow:0 12px 40px rgba(228,98,14,.2)}
+  .banner .ico{width:34px;height:34px;border-radius:8px;color:#fff;flex:none;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;animation:pulse 1s infinite}
+  .banner.crit .ico{background:var(--crit)} .banner.high .ico{background:var(--high)}
+  .banner .h{font-family:var(--disp);font-weight:600;font-size:14px;color:var(--text)}
+  .banner .s{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:2px}
+  .banner .ack{margin-left:auto;font-family:var(--mono);font-size:11px;padding:8px 14px;border-radius:6px;border:1px solid var(--line-2);background:transparent;color:var(--text);cursor:pointer}
+  .banner .ack:hover{background:rgba(15,30,55,.06)}
+
+  /* ── SHUTDOWN MODAL ── */
+  .overlay{position:fixed;inset:0;background:rgba(10,18,30,.55);backdrop-filter:blur(3px);z-index:100;display:none;align-items:center;justify-content:center}
+  .overlay.show{display:flex}
+  .modal{width:520px;max-width:92vw;background:var(--panel);border:1px solid var(--crit);border-radius:14px;overflow:hidden;box-shadow:0 24px 80px rgba(216,32,47,.3);animation:popin .25s ease}
+  .modal-hd{display:flex;align-items:center;gap:13px;padding:18px 20px;background:linear-gradient(90deg,rgba(216,32,47,.12),transparent);border-bottom:1px solid var(--line)}
+  .modal-hd .ico{width:38px;height:38px;border-radius:9px;background:var(--crit);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex:none}
+  .modal-hd .h{font-family:var(--disp);font-weight:700;font-size:16px}
+  .modal-hd .s{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.06em;margin-top:2px}
+  .modal-bd{padding:20px}
+  .mrow{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed var(--line);font-family:var(--mono);font-size:12px}
+  .mrow .k{color:var(--dim)} .mrow .v{color:var(--text);font-weight:600}
+  .mrow .v.danger{color:var(--crit)}
+  .mnote{margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--dim);line-height:1.6;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:11px}
+  .modal-ft{display:flex;gap:10px;padding:16px 20px;border-top:1px solid var(--line)}
+  .mbtn{flex:1;font-family:var(--mono);font-size:12px;letter-spacing:.06em;padding:12px;border-radius:9px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);cursor:pointer;font-weight:600;transition:all .14s}
+  .mbtn.confirm{background:var(--crit);border-color:var(--crit);color:#fff}
+  .mbtn.confirm:hover{background:#b31824}
+  .mbtn.cancel:hover{border-color:var(--dim)}
+
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes slidein{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  @keyframes zonepulse{0%,100%{opacity:1}50%{opacity:.55}}
+  @keyframes popin{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+  @media (max-width:1400px){.main{grid-template-columns:minmax(0,1fr) 280px 260px}}
+  @media (max-width:1150px){.main{grid-template-columns:minmax(0,1fr) 300px}.stack{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="brand"><div class="wordmark">ARGUS<small>REFINERY SAFETY CONSOLE</small></div></div>
+    <div class="divider"></div>
+    <div class="site"><span class="code">RFNY-MNG</span><span>West Complex · Unit 4</span></div>
+    <div class="spacer"></div>
+    <div class="stat" id="sysStat"><span class="dot"></span><span id="statTxt">STANDBY · NOT ANALYSING</span></div>
+    <div class="divider"></div>
+    <button class="icobtn" id="muteBtn" title="Toggle alarm sound">&#9834;</button>
+    <div class="clock" id="clock">14:32:07</div>
+  </div>
+
+  <!-- CONTROL BAR -->
+  <div class="ctrl">
+    <button class="btn" id="loadBtn">&#43; LOAD FOOTAGE</button>
+    <input type="file" id="fileIn" accept="video/*" multiple style="display:none">
+    <div class="seg" id="gridSeg">
+      <button data-c="1">1-UP</button><button data-c="2" class="on">2-UP</button><button data-c="3">3-UP</button>
+    </div>
+    <div class="csep"></div>
+    <button class="btn primary" id="analyseBtn">&#9654; START ANALYSING</button>
+    <div class="csep"></div>
+    <div class="selinfo">TARGET <b id="selCam">— select a camera —</b></div>
+    <div class="trig">
+      <button class="tbtn low" data-sev="low">LOW</button>
+      <button class="tbtn med" data-sev="med">MEDIUM</button>
+      <button class="tbtn high" data-sev="high">HIGH</button>
+      <button class="tbtn crit" data-sev="crit">CRITICAL</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="hint" id="ctrlHint">START &rarr; analytics engage &middot; hazards drive zone response</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="wall c2" id="wall"></div>
+
+    <!-- FLOOR PLAN -->
+    <div class="fp">
+      <div class="fp-hd"><span class="t">UNIT 4 · FLOOR PLAN</span><span class="lvl" id="fpStatus">ALL ZONES NOMINAL</span></div>
+      <div class="fp-body">
+        <div class="fp-map" id="fpMap"></div>
+        <div class="fp-legend">
+          <span><i class="lgd" style="background:rgba(87,232,255,.4)"></i>Monitored</span>
+          <span><i class="lgd" style="background:var(--high)"></i>Hazard</span>
+          <span><i class="lgd" style="background:var(--crit)"></i>Critical</span>
+          <span><i class="lgd" style="background:#3c0a0e;border:1px solid var(--crit)"></i>Isolated</span>
+        </div>
+        <div class="zact" id="zact">
+          <span class="zt">SELECTED ZONE</span>
+          <span class="zn" id="zactName">—</span>
+          <span class="zstatus nominal" id="zactStatus">NOMINAL</span>
+          <div class="zmeta" id="zactMeta"></div>
+          <div class="zbtns">
+            <button class="zbtn danger" id="zShut">&#9632; ISOLATE ZONE</button>
+            <button class="zbtn restore" id="zRestore" disabled>&#8635; RESTORE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALARM STACK -->
+    <div class="stack">
+      <div class="stack-hd"><span class="t">EVENT LOG</span><span class="ackall" id="ackAll">ACK ALL</span></div>
+      <div class="alist" id="alist"><div class="empty" id="emptyState">No active events.<br>Start analysing to begin<br>behavioral &amp; PPE detection.</div></div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="foot">
+    <div class="fcount"><span class="fdot crit"></span><span class="n" id="cCrit">0</span><span class="l">CRITICAL</span></div>
+    <div class="fcount"><span class="fdot high"></span><span class="n" id="cHigh">0</span><span class="l">HIGH</span></div>
+    <div class="fcount"><span class="fdot med"></span><span class="n" id="cMed">0</span><span class="l">MEDIUM</span></div>
+    <div class="fcount"><span class="fdot low"></span><span class="n" id="cLow">0</span><span class="l">LOW</span></div>
+    <div class="spacer"></div>
+    <div class="fmeta" id="footMeta">FEEDS 6 · PPE 94% · ZONES 6 · MODEL argus-vision-2.4 · 30 FPS</div>
+  </div>
+</div>
+
+<!-- BANNER -->
+<div class="banner" id="banner">
+  <div class="ico">!</div>
+  <div><div class="h" id="banH"></div><div class="s" id="banS"></div></div>
+  <button class="ack" id="banAck">VIEW ZONE</button>
+</div>
+
+<!-- SHUTDOWN MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="ico">&#9888;</div>
+      <div><div class="h" id="mH">ISOLATE ZONE</div><div class="s" id="mS">CONFIRM EMERGENCY ISOLATION</div></div>
+    </div>
+    <div class="modal-bd" id="mBody"></div>
+    <div class="modal-ft">
+      <button class="mbtn cancel" id="mCancel">DISMISS</button>
+      <button class="mbtn confirm" id="mConfirm">&#9632; CONFIRM SHUTDOWN</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+  const reduce=window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+  /* ── REAL VIDEO FILES ── */
+  const V = {
+    derrick : "Derrickman Lifted By The Elevator.mp4",
+    driller : "Driller Loss of Concentration During Disconnection of Drill Pipes.mp4",
+    casing  : "Dropped Well Casing - (480p) (1).mp4",
+    roof    : "Painful Moment Construction Worker Falls Through Warehouse Roof.mp4"
+  };
+
+  /*
+    Each feed maps to a physical zone. Detection is a STABLE tracked box that
+    sits where the subject actually is in the clip, with a realistic analytics
+    timeline: DETECT -> CLASSIFY -> VIOLATION. Boxes ease smoothly, no jitter.
+    box = {x,y,w,h} in % of the tile.
+  */
+  const sections=[
+    { code:"Z1", zone:"DERRICK FLOOR", cam:"CAM-07", geo:"29.760N 95.369W", src:V.derrick,
+      ppe:"ok", persons:1,
+      box:{x:44,y:52,w:13,h:34},
+      timeline:[
+        {t:0,   label:"person 0.94",            cls:"", box:{x:44,y:52,w:13,h:34}, status:"tracking worker"},
+        {t:2600,label:"worker · rising 0.92",   cls:"warn", box:{x:45,y:34,w:12,h:32}, status:"vertical displacement detected"},
+        {t:5200,label:"FALL / LIFT HAZARD 0.97",cls:"alarm", box:{x:46,y:16,w:12,h:30}, status:"restraint not detected"}],
+      sev:"crit", cause:"Derrickman lifted by travelling block — fall-arrest not verified", proc:"SOP-04 Working at Height" },
+
+    { code:"Z2", zone:"DRILL FLOOR", cam:"CAM-12", geo:"29.761N 95.368W", src:V.driller,
+      ppe:"ok", persons:2,
+      box:{x:40,y:44,w:18,h:38},
+      timeline:[
+        {t:0,   label:"person 0.93",           cls:"", box:{x:40,y:44,w:18,h:38}, status:"tracking driller"},
+        {t:3000,label:"hands in pinch-pt 0.88",cls:"warn", box:{x:46,y:52,w:11,h:16}, status:"attention lapse"},
+        {t:6000,label:"LINE-OF-FIRE 0.94",     cls:"alarm", box:{x:45,y:50,w:13,h:20}, status:"body inside hazard envelope"}],
+      sev:"high", cause:"Attention lapse — hands in pinch-point during pipe disconnection", proc:"SOP-11 Pipe Handling" },
+
+    { code:"Z3", zone:"CASING DECK", cam:"CAM-04", geo:"29.762N 95.370W", src:V.casing,
+      ppe:"warn", persons:2,
+      box:{x:44,y:14,w:13,h:30},
+      timeline:[
+        {t:0,   label:"suspended load 0.90",cls:"", box:{x:44,y:14,w:13,h:30}, status:"tracking hoisted casing"},
+        {t:2400,label:"load swing 0.87",    cls:"warn", box:{x:38,y:22,w:14,h:34}, status:"lateral swing over deck"},
+        {t:4800,label:"DROPPED OBJECT 0.96",cls:"alarm", box:{x:34,y:52,w:16,h:30}, status:"load release detected"}],
+      sev:"crit", cause:"Well casing released from hoist — dropped-object over personnel", proc:"SOP-07 Lifting Ops" },
+
+    { code:"Z4", zone:"WAREHOUSE ROOF", cam:"CAM-19", geo:"29.759N 95.371W", src:V.roof,
+      ppe:"bad", persons:1,
+      box:{x:42,y:24,w:14,h:38},
+      timeline:[
+        {t:0,   label:"person on roof 0.95",  cls:"", box:{x:42,y:24,w:14,h:38}, status:"tracking worker"},
+        {t:3200,label:"near fragile panel 0.91",cls:"warn", box:{x:44,y:30,w:14,h:38}, status:"unsupported skylight ahead"},
+        {t:6400,label:"FALL FROM HEIGHT 0.99",cls:"alarm", box:{x:45,y:56,w:16,h:26}, status:"roof penetration — person down"}],
+      sev:"crit", cause:"Worker fell through fragile roof panel — person down", proc:"SOP-04 Working at Height" },
+
+    { code:"Z5", zone:"DERRICK · WIDE", cam:"CAM-22", geo:"29.760N 95.367W", src:V.derrick,
+      ppe:"ok", persons:3,
+      box:{x:30,y:44,w:13,h:32},
+      timeline:[
+        {t:0,   label:"3 persons 0.90",            cls:"", box:{x:30,y:44,w:13,h:32}, status:"tracking crew"},
+        {t:3600,label:"proximity to equipment 0.85",cls:"warn", box:{x:40,y:42,w:14,h:34}, status:"exclusion-zone incursion"}],
+      sev:"med", cause:"Crew inside rotating-equipment exclusion zone", proc:"SOP-02 Barricading" },
+
+    { code:"Z6", zone:"CASING · OVERHEAD", cam:"CAM-09", geo:"29.762N 95.372W", src:V.casing,
+      ppe:"ok", persons:2,
+      box:{x:46,y:20,w:15,h:30},
+      timeline:[
+        {t:0,   label:"suspended load 0.89",   cls:"", box:{x:46,y:20,w:15,h:30}, status:"tracking load"},
+        {t:2800,label:"personnel under load 0.92",cls:"warn", box:{x:44,y:48,w:14,h:34}, status:"walk-under detected"},
+        {t:5600,label:"STRUCK-BY RISK 0.95",   cls:"alarm", box:{x:45,y:44,w:16,h:38}, status:"personnel in drop radius"}],
+      sev:"crit", cause:"Personnel positioned under suspended load", proc:"SOP-07 Lifting Ops" }
+  ];
+
+  const SEV={
+    low:{label:"LOW",col:"var(--low)",sound:null},
+    med:{label:"MEDIUM",col:"var(--med)",sound:[660,1]},
+    high:{label:"HIGH",col:"var(--high)",sound:[520,2]},
+    crit:{label:"CRITICAL",col:"var(--crit)",sound:[440,3]},
+  };
+  const SEVORD={low:0,med:1,high:2,crit:3};
+
+  /* ── build camera wall ── */
+  const wall=$("#wall");
+  const tiles=[];
+  sections.forEach((s,i)=>{
+    const el=document.createElement("div");
+    el.className="cam"; el.dataset.idx=i;
+    const b=s.box;
+    const ppeCls=s.ppe==="ok"?"ok":(s.ppe==="warn"?"warn":"bad");
+    const ppeTxt=s.ppe==="ok"?"PPE ✓":(s.ppe==="warn"?"PPE PARTIAL":"NO HELMET");
+    el.innerHTML=`
+      <div class="scene">NO SIGNAL — ${s.cam}</div>
+      <div class="vig"></div>
+      <div class="abadge">&#9672; ANALYTICS ACTIVE</div>
+      <div class="det" style="left:${b.x}%;top:${b.y}%;width:${b.w}%;height:${b.h}%"><div class="dl">${s.timeline[0].label}</div><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span></div>
+      <div class="hud tl"><span class="rec">REC</span> ${s.cam}</div>
+      <div class="statline">
+        <span class="pill ${ppeCls}">${ppeTxt}</span>
+        <span class="pill">PERSONS ${s.persons}</span>
+        <span class="pill">${s.code}</span>
+      </div>
+      <div class="hud tr"><span class="zone">${s.zone}</span></div>
+      <div class="hud bl">${s.proc}</div>
+      <div class="hud br">1920&times;1080 · ${s.geo}</div>
+      <div class="flag"></div>
+      <div class="drop"><span class="plus">&#43;</span>ASSIGN FEED<br>drop video or click</div>`;
+    wall.appendChild(el);
+    const t={el,idx:i,alarms:new Map(),url:null,video:null,step:0,tlTimers:[]};
+    tiles.push(t);
+
+    el.addEventListener("click",()=>selectTile(i));
+    $(".drop",el).addEventListener("click",e=>{e.stopPropagation();openFileFor(i);});
+    el.addEventListener("dragover",e=>{e.preventDefault();el.classList.add("dragover");});
+    el.addEventListener("dragleave",()=>el.classList.remove("dragover"));
+    el.addEventListener("drop",e=>{e.preventDefault();el.classList.remove("dragover");
+      const f=[...e.dataTransfer.files].find(f=>f.type.startsWith("video"));if(f)loadVideoFile(i,f);});
+
+    loadVideoSrc(i, s.src);
+  });
+
+  /* ── FLOOR PLAN (SVG) — schematic refinery plot plan with real equipment ── */
+  const fpMap=$("#fpMap");
+  const svgNS="http://www.w3.org/2000/svg";
+  const NS=(tag,attrs={})=>{const e=document.createElementNS(svgNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;};
+  const svg=NS("svg",{viewBox:"0 0 476 300"});
+
+  // ── static equipment layer (drawn once, non-interactive) ──
+  const bg=NS("g",{});
+  const LN="rgba(120,150,180,.28)", LN2="rgba(120,150,180,.16)", FILL="rgba(120,150,180,.06)", TXT="#7d8ba0";
+  // plant boundary
+  bg.appendChild(NS("rect",{x:8,y:10,width:460,height:282,rx:12,fill:"none",stroke:"rgba(87,232,255,.18)","stroke-width":1.4}));
+  // main pipe racks (horizontal + vertical spine)
+  [[20,150,456,150],[238,20,238,150]].forEach(l=>bg.appendChild(NS("line",{x1:l[0],y1:l[1],x2:l[2],y2:l[3],stroke:LN2,"stroke-dasharray":"1 3","stroke-width":4})));
+  // rack support ticks
+  for(let x=40;x<456;x+=34){bg.appendChild(NS("line",{x1:x,y1:147,x2:x,y2:153,stroke:LN2,"stroke-width":1}));}
+
+  // helper equipment glyphs
+  function column(x,y,h){ // distillation column
+    const g=NS("g",{});
+    g.appendChild(NS("rect",{x:x,y:y,width:16,height:h,rx:8,fill:FILL,stroke:LN,"stroke-width":1.2}));
+    for(let ty=y+8;ty<y+h-4;ty+=9) g.appendChild(NS("line",{x1:x,y1:ty,x2:x+16,y2:ty,stroke:LN2,"stroke-width":.8}));
+    return g;
+  }
+  function tank(cx,cy,r){ const g=NS("g",{});
+    g.appendChild(NS("circle",{cx,cy,r,fill:FILL,stroke:LN,"stroke-width":1.2}));
+    g.appendChild(NS("circle",{cx,cy,r:r*0.62,fill:"none",stroke:LN2,"stroke-width":.8}));
+    return g; }
+  function reactor(x,y,w,h){ const g=NS("g",{});
+    g.appendChild(NS("rect",{x,y,width:w,height:h,rx:5,fill:FILL,stroke:LN,"stroke-width":1.2}));
+    g.appendChild(NS("ellipse",{cx:x+w/2,cy:y,rx:w/2,ry:4,fill:FILL,stroke:LN,"stroke-width":1}));
+    return g; }
+
+  // Equipment placements (decorative, per-zone context)
+  bg.appendChild(column(70,42,80));          // CDU column (Z1)
+  bg.appendChild(column(94,60,58));           // side column
+  bg.appendChild(reactor(170,50,54,74));      // reactor (Z2)
+  bg.appendChild(tank(390,78,34));            // storage tank (Z3)
+  bg.appendChild(tank(60,220,30));            // tank (Z4)
+  bg.appendChild(reactor(300,52,40,70));      // small reactor
+  bg.appendChild(tank(400,225,28));           // tank (Z6)
+  // flare stack bottom-right
+  bg.appendChild(NS("polygon",{points:"180,285 186,225 190,225 196,285",fill:FILL,stroke:LN,"stroke-width":1}));
+  bg.appendChild(NS("path",{d:"M188,225 q-4,-10 3,-16 q-1,7 4,8 q-2,-9 5,-13 q1,10 -2,15 q6,-2 4,-9 q4,8 -3,15 z",fill:"rgba(228,98,14,.35)",stroke:"rgba(228,98,14,.5)","stroke-width":.6}));
+  // gas/S&F sensor marker
+  const sensor=NS("g",{});
+  sensor.appendChild(NS("circle",{cx:246,cy:200,r:4,fill:"none",stroke:"rgba(87,232,255,.5)","stroke-width":1}));
+  sensor.appendChild(NS("circle",{cx:246,cy:200,r:1.6,fill:"#57e8ff"}));
+  const stxt=NS("text",{x:254,y:203,"font-family":"var(--mono)","font-size":6,fill:TXT}); stxt.textContent="GAS SENSOR"; sensor.appendChild(stxt);
+  bg.appendChild(sensor);
+  // service vehicle (top view)
+  const veh=NS("g",{transform:"translate(300,180)"});
+  veh.appendChild(NS("rect",{x:0,y:0,width:34,height:18,rx:3,fill:FILL,stroke:LN,"stroke-width":1.1}));
+  veh.appendChild(NS("rect",{x:26,y:2,width:12,height:14,rx:2,fill:FILL,stroke:LN,"stroke-width":1}));
+  veh.appendChild(NS("circle",{cx:8,cy:20,r:3,fill:"none",stroke:LN,"stroke-width":1}));
+  veh.appendChild(NS("circle",{cx:28,cy:20,r:3,fill:"none",stroke:LN,"stroke-width":1}));
+  bg.appendChild(veh);
+  svg.appendChild(bg);
+
+  // worker figure glyph (top-down-ish) with PPE tag
+  function worker(cx,cy){
+    const g=NS("g",{class:"worker",transform:`translate(${cx},${cy})`});
+    g.appendChild(NS("rect",{x:-5,y:-2,width:10,height:16,rx:4,fill:"currentColor",opacity:.85}));      // torso
+    g.appendChild(NS("circle",{cx:0,cy:-6,r:4,fill:"currentColor"}));                                    // head/helmet
+    return g;
+  }
+
+  // ── ZONE definitions: dashed monitored boundaries over the equipment ──
+  const zoneLayout=[
+    {i:0, x:52, y:26, w:66,  h:116}, // Z1 derrick / CDU
+    {i:1, x:150,y:30, w:96,  h:104}, // Z2 drill / reactor
+    {i:2, x:352,y:40, w:104, h:96 }, // Z3 casing deck / tank
+    {i:3, x:24, y:180,w:120, h:96 }, // Z4 warehouse roof
+    {i:4, x:160,y:158,w:110, h:118}, // Z5 derrick wide (active monitoring)
+    {i:5, x:352,y:180,w:104, h:96 }, // Z6 casing overhead
+  ];
+
+  const zoneEls=[];
+  zoneLayout.forEach(z=>{
+    const s=sections[z.i];
+    const g=NS("g",{class:"zg"}); g.dataset.idx=z.i;
+    // dashed monitored boundary (not a solid filled rect)
+    const r=NS("rect",{class:"zone-rect",x:z.x,y:z.y,width:z.w,height:z.h,rx:5,"stroke-dasharray":"5 4"});
+    // zone header label
+    const code=NS("text",{class:"zcode",x:z.x+7,y:z.y-4}); code.textContent=s.code+" · "+s.zone;
+    const lab=NS("text",{class:"zlabel",x:z.x+7,y:z.y+z.h+10}); lab.textContent=s.cam+" · monitoring";
+    const lock=NS("text",{class:"zlock",x:z.x+7,y:z.y+z.h/2+3}); lock.textContent="⬛ ISOLATED";
+    // status dot (top-right of zone)
+    const dot=NS("circle",{class:"zdot",cx:z.x+z.w-9,cy:z.y+10,r:4,fill:"#17A866"});
+    // worker figures inside the zone (count = persons, capped)
+    const wg=NS("g",{class:"zworkers"});
+    const n=Math.min(s.persons,3);
+    for(let k=0;k<n;k++){ wg.appendChild(worker(z.x+22+k*24, z.y+z.h-26)); }
+    g.appendChild(r);g.appendChild(wg);g.appendChild(code);g.appendChild(lab);g.appendChild(dot);g.appendChild(lock);
+    g.addEventListener("click",()=>{selectTile(z.i);selectZone(z.i);});
+    svg.appendChild(g);
+    zoneEls[z.i]={g,dot};
+  });
+  fpMap.appendChild(svg);
+
+  /* ── selection (camera + zone linked) ── */
+  let selected=null;
+  function selectTile(i){
+    tiles.forEach(t=>t.el.classList.toggle("selected",t.idx===i));
+    selected=i; $("#selCam").textContent=`${sections[i].code} · ${sections[i].cam}`;
+    selectZone(i);
+  }
+  let selZone=null;
+  function selectZone(i){
+    selZone=i;
+    zoneEls.forEach((z,k)=>z.g.classList.toggle("sel",k===i));
+    renderZoneCard(i);
+  }
+  function renderZoneCard(i){
+    const s=sections[i], t=tiles[i];
+    $("#zactName").textContent=s.code+" · "+s.zone;
+    const st=$("#zactStatus");
+    const locked=t.el.dataset.locked==="1";
+    const hazard=[...t.alarms.values()].some(v=>SEVORD[v]>=2);
+    if(locked){st.className="zstatus isolated";st.textContent="ISOLATED / SHUTDOWN";}
+    else if(hazard){st.className="zstatus hazard";st.textContent="ACTIVE HAZARD";}
+    else{st.className="zstatus nominal";st.textContent="NOMINAL";}
+    $("#zactMeta").innerHTML=`FEED <b>${s.cam}</b> · PERSONS <b>${s.persons}</b><br>PPE <b>${s.ppe.toUpperCase()}</b> · PROC <b>${s.proc}</b><br>COORD <b>${s.geo}</b>`;
+    $("#zShut").disabled=locked;
+    $("#zRestore").disabled=!locked;
+  }
+
+  /* ── video loading ── */
+  function ensureVideo(t){
+    let v=t.video;
+    if(!v){ v=document.createElement("video"); v.muted=true;v.loop=true;v.playsInline=true;v.autoplay=true;v.preload="auto";
+      t.el.insertBefore(v,t.el.querySelector(".scene").nextSibling); t.video=v; }
+    return v;
+  }
+  function loadVideoSrc(i,src){
+    const t=tiles[i]; const v=ensureVideo(t);
+    v.src=encodeURI(src); v.play().catch(()=>{});
+    v.addEventListener("loadeddata",()=>{$(".scene",t.el).style.display="none";$(".drop",t.el).style.display="none";updateFooter();},{once:true});
+    v.addEventListener("loadedmetadata",()=>{ if(isFinite(v.duration)&&v.duration>4){ v.currentTime=(i%2)*2.0; } },{once:true});
+  }
+  function loadVideoFile(i,file){
+    const t=tiles[i]; if(t.url)URL.revokeObjectURL(t.url);
+    t.url=URL.createObjectURL(file); const v=ensureVideo(t);
+    v.src=t.url; v.play().catch(()=>{});
+    $(".scene",t.el).style.display="none";$(".drop",t.el).style.display="none";updateFooter();
+  }
+  const fileIn=$("#fileIn"); let pendingTile=null;
+  $("#loadBtn").addEventListener("click",()=>{pendingTile=null;fileIn.click();});
+  function openFileFor(i){pendingTile=i;fileIn.click();}
+  fileIn.addEventListener("change",e=>{
+    const files=[...e.target.files].filter(f=>f.type.startsWith("video"));
+    if(!files.length)return;
+    if(pendingTile!=null){ loadVideoFile(pendingTile,files[0]); }
+    else { let fi=0; for(let i=0;i<tiles.length && fi<files.length;i++){ loadVideoFile(i,files[fi]); fi++; } }
+    fileIn.value="";
+  });
+
+  /* ── grid density ── */
+  $$("#gridSeg button").forEach(b=>b.addEventListener("click",()=>{
+    $$("#gridSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
+    wall.className="wall c"+b.dataset.c;
+  }));
+
+  /* ── clock ── */
+  let clk=new Date();clk.setHours(14,32,7,0);
+  setInterval(()=>{clk=new Date(clk.getTime()+1000);
+    $("#clock").textContent=fmt(clk);},1000);
+  const fmt=d=>[d.getHours(),d.getMinutes(),d.getSeconds()].map(x=>String(x).padStart(2,"0")).join(":");
+  const nowStr=()=>fmt(clk);
+
+  /* ── audio ── */
+  let audioCtx=null, muted=false;
+  $("#muteBtn").addEventListener("click",function(){muted=!muted;this.classList.toggle("off",muted);this.innerHTML=muted?"&#10005;":"&#9834;";});
+  function beep(freq,count){
+    if(muted||reduce)return;
+    try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==="suspended")audioCtx.resume();
+      for(let k=0;k<count;k++){ const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+        o.type="square";o.frequency.value=freq; o.connect(g);g.connect(audioCtx.destination);
+        const start=audioCtx.currentTime+k*0.16; g.gain.setValueAtTime(0.0001,start);
+        g.gain.exponentialRampToValueAtTime(0.06,start+0.01); g.gain.exponentialRampToValueAtTime(0.0001,start+0.13);
+        o.start(start);o.stop(start+0.14);} }catch(e){}
+  }
+
+  /* ── analytics engine (stable, scripted timelines) ── */
+  let analysing=false, autoTimer=null;
+  const analyseBtn=$("#analyseBtn");
+  analyseBtn.addEventListener("click",()=>analysing?stopAnalysing():startAnalysing());
+
+  function runTimeline(t){
+    const s=sections[t.idx];
+    clearTimers(t); t.step=0;
+    // reset box to first step position at start of each loop
+    const det0=$(".det",t.el);
+    const b0=s.timeline[0].box||s.box;
+    det0.style.left=b0.x+"%";det0.style.top=b0.y+"%";det0.style.width=b0.w+"%";det0.style.height=b0.h+"%";
+    s.timeline.forEach((step)=>{
+      const id=setTimeout(()=>{
+        if(!analysing)return;
+        const det=$(".det",t.el), lab=$(".det .dl",t.el);
+        lab.textContent=step.label;
+        // move/resize box to physically track the subject
+        if(step.box){ det.style.left=step.box.x+"%";det.style.top=step.box.y+"%";
+          det.style.width=step.box.w+"%";det.style.height=step.box.h+"%"; }
+        det.classList.remove("warn","alarm");
+        if(step.cls) det.classList.add(step.cls);
+        if(step.cls==="alarm"){ fireAlarm(t.idx,s.sev,true,s.cause); }
+        else if(step.cls==="warn"){ if(SEVORD[s.sev]<2) fireAlarm(t.idx,s.sev,true,s.cause); }
+      }, step.t + 800 + t.idx*250);
+      t.tlTimers.push(id);
+    });
+    // loop the timeline to match looping video
+    const loopId=setTimeout(()=>{ if(analysing) runTimeline(t); }, 14000);
+    t.tlTimers.push(loopId);
+  }
+  function clearTimers(t){ t.tlTimers.forEach(clearTimeout); t.tlTimers=[]; }
+
+  function startAnalysing(){
+    analysing=true;
+    tiles.forEach(t=>{t.el.classList.add("analysing");t.video&&t.video.play().catch(()=>{});runTimeline(t);});
+    analyseBtn.classList.add("running"); analyseBtn.innerHTML="&#9632; STOP ANALYSING";
+    $("#sysStat").classList.add("analysing"); $("#statTxt").textContent="ANALYSING · 6 FEEDS LIVE";
+    $("#ctrlHint").textContent="Analytics running — hazards drive floor-plan response";
+    try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume();}catch(e){}
+  }
+  function stopAnalysing(){
+    analysing=false; clearTimeout(autoTimer);
+    tiles.forEach(t=>{t.el.classList.remove("analysing");clearTimers(t);
+      const det=$(".det",t.el);det.classList.remove("warn","alarm");
+      $(".det .dl",t.el).textContent=sections[t.idx].timeline[0].label;});
+    analyseBtn.classList.remove("running"); analyseBtn.innerHTML="&#9654; START ANALYSING";
+    $("#sysStat").classList.remove("analysing"); $("#statTxt").textContent="STANDBY · NOT ANALYSING";
+    $("#ctrlHint").textContent="START → analytics engage · hazards drive zone response";
+  }
+
+  /* ── events / alarms ── */
+  let idc=0, eventCount=0;
+  const alist=$("#alist"), emptyState=$("#emptyState");
+  const counts={low:0,med:0,high:0,crit:0};
+  const firedRecently={}; // debounce per cam+sev
+
+  function fireAlarm(camIdx,sevKey,auto,cause){
+    const key=camIdx+"|"+sevKey;
+    const now=Date.now();
+    if(auto && firedRecently[key] && now-firedRecently[key]<12000) return; // don't spam
+    firedRecently[key]=now;
+
+    const s=SEV[sevKey], t=tiles[camIdx], sec=sections[camIdx];
+    const id=++idc; eventCount++;
+    const text=cause || sec.cause;
+    t.alarms.set(id,sevKey);
+    refreshTile(camIdx);
+    updateZoneMap(camIdx);
+    if(s.sound) beep(s.sound[0],s.sound[1]);
+
+    if(emptyState) emptyState.style.display="none";
+    const a=document.createElement("div");
+    a.className="alarm sev-"+sevKey; a.dataset.id=id; a.dataset.cam=camIdx;
+    a.innerHTML=`<div class="bar"></div><div>
+      <div class="top"><span class="chip">${s.label}</span><span class="time">${nowStr()}</span></div>
+      <div class="desc">${text}</div>
+      <div class="cam-l"><span>${sec.code} · ${sec.zone} · ${sec.cam}</span><span class="ack">ACK</span></div></div>`;
+    alist.insertBefore(a,alist.firstChild);
+    $(".ack",a).addEventListener("click",e=>{e.stopPropagation();ackAlarm(id);});
+    a.addEventListener("click",()=>{selectTile(camIdx);});
+    while(alist.querySelectorAll(".alarm").length>50){ const arr=alist.querySelectorAll(".alarm");
+      const rem=arr[arr.length-1]; if(rem.classList.contains("acked"))rem.remove(); else break; }
+
+    counts[sevKey]++; updateCounts();
+    if(sevKey==="high"||sevKey==="crit") showBanner(sevKey,sec,text,id,camIdx);
+    if(selZone===camIdx) renderZoneCard(camIdx);
+    updateFooter();
+  }
+
+  function refreshTile(i){
+    const t=tiles[i]; let max=-1;
+    t.alarms.forEach(sv=>{ if(SEVORD[sv]>max)max=SEVORD[sv]; });
+    t.el.classList.remove("sev-med","sev-high","sev-crit","flagged");
+    if(max<0){ $(".flag",t.el).style.display="none"; return; }
+    const key=["low","med","high","crit"][max];
+    const flag=$(".flag",t.el);
+    if(key!=="low") t.el.classList.add("sev-"+key);
+    t.el.classList.add("flagged");
+    flag.textContent=SEV[key].label+" · "+sections[i].zone;
+    flag.style.background=SEV[key].col;
+  }
+
+  function updateZoneMap(i){
+    const t=tiles[i]; let max=-1;
+    t.alarms.forEach(sv=>{ if(SEVORD[sv]>max)max=SEVORD[sv]; });
+    const g=zoneEls[i].g, dot=zoneEls[i].dot;
+    g.classList.remove("med","high","crit");
+    if(t.el.dataset.locked==="1"){ dot.setAttribute("fill","#D8202F"); updateFpStatus(); return; }
+    if(max<0){ dot.setAttribute("fill","#17A866"); updateFpStatus(); return; }
+    const key=["low","med","high","crit"][max];
+    if(key!=="low") g.classList.add(key);
+    dot.setAttribute("fill", key==="crit"?"#D8202F":key==="high"?"#E4620E":key==="med"?"#C67C0A":"#17A866");
+    updateFpStatus();
+  }
+  function updateFpStatus(){
+    const locked=tiles.filter(t=>t.el.dataset.locked==="1").length;
+    const haz=zoneEls.filter(z=>z.g.classList.contains("crit")||z.g.classList.contains("high")).length;
+    const el=$("#fpStatus");
+    if(locked){el.textContent=locked+" ZONE"+(locked>1?"S":"")+" ISOLATED";el.style.color="var(--crit)";}
+    else if(haz){el.textContent=haz+" ACTIVE HAZARD"+(haz>1?"S":"");el.style.color="var(--high)";}
+    else{el.textContent="ALL ZONES NOMINAL";el.style.color="var(--dim)";}
+  }
+
+  function ackAlarm(id){
+    const a=alist.querySelector(`.alarm[data-id="${id}"]`); if(!a||a.classList.contains("acked"))return;
+    a.classList.add("acked");
+    const cam=+a.dataset.cam, sev=[...a.classList].find(c=>c.startsWith("sev-")).slice(4);
+    tiles[cam].alarms.delete(id); refreshTile(cam); updateZoneMap(cam);
+    counts[sev]=Math.max(0,counts[sev]-1); updateCounts();
+    if(banner.dataset.id==id) hideBanner();
+    if(selZone===cam) renderZoneCard(cam);
+  }
+  $("#ackAll").addEventListener("click",()=>{
+    $$(".alarm:not(.acked)",alist).forEach(a=>ackAlarm(+a.dataset.id)); hideBanner();
+  });
+
+  function updateCounts(){ $("#cCrit").textContent=counts.crit;$("#cHigh").textContent=counts.high;$("#cMed").textContent=counts.med;$("#cLow").textContent=counts.low; }
+  function updateFooter(){ const loaded=tiles.filter(t=>t.video&&t.video.src).length;
+    $("#footMeta").textContent=`FEEDS ${tiles.length} · VIDEO ${loaded} · EVENTS ${eventCount} · MODEL argus-vision-2.4 · 30 FPS`; }
+
+  /* ── banner ── */
+  const banner=$("#banner");
+  function showBanner(sev,sec,text,id,camIdx){
+    banner.className="banner "+sev+" show"; banner.dataset.id=id; banner.dataset.cam=camIdx;
+    $("#banH").textContent=(sev==="crit"?"CRITICAL":"HIGH")+" HAZARD — "+sec.code+" "+sec.zone;
+    $("#banS").innerHTML=`${text} · ${sec.cam} · flagged ${nowStr()}`;
+    if(sev==="high"){ clearTimeout(banner._to); banner._to=setTimeout(hideBanner,7000); }
+  }
+  function hideBanner(){ banner.classList.remove("show"); banner.dataset.id=""; }
+  $("#banAck").addEventListener("click",()=>{ const cam=banner.dataset.cam; if(cam!=="")selectTile(+cam); hideBanner(); });
+
+  /* ── manual triggers ── */
+  $$(".tbtn").forEach(b=>b.addEventListener("click",()=>{
+    const sev=b.dataset.sev;
+    const cam = selected!=null ? selected : 0;
+    if(selected==null) selectTile(cam);
+    firedRecently[cam+"|"+sev]=0;
+    fireAlarm(cam,sev,false);
+  }));
+
+  /* ── ZONE SHUTDOWN WORKFLOW ── */
+  const overlay=$("#overlay");
+  $("#zShut").addEventListener("click",()=>{ if(selZone!=null) openShutdown(selZone); });
+  $("#zRestore").addEventListener("click",()=>{ if(selZone!=null) restoreZone(selZone); });
+
+  function openShutdown(i){
+    const s=sections[i], t=tiles[i];
+    let max=-1; t.alarms.forEach(sv=>{if(SEVORD[sv]>max)max=SEVORD[sv];});
+    const key=max<0?"—":SEV[["low","med","high","crit"][max]].label;
+    $("#mH").textContent="ISOLATE "+s.code+" · "+s.zone;
+    $("#mBody").innerHTML=`
+      <div class="mrow"><span class="k">ZONE</span><span class="v">${s.code} · ${s.zone}</span></div>
+      <div class="mrow"><span class="k">CAMERA</span><span class="v">${s.cam}</span></div>
+      <div class="mrow"><span class="k">DETECTED HAZARD</span><span class="v danger">${s.cause}</span></div>
+      <div class="mrow"><span class="k">SEVERITY</span><span class="v danger">${key}</span></div>
+      <div class="mrow"><span class="k">GOVERNING PROCEDURE</span><span class="v">${s.proc}</span></div>
+      <div class="mrow"><span class="k">PERSONNEL IN ZONE</span><span class="v">${s.persons}</span></div>
+      <div class="mnote">Confirming will signal the DCS/ESD interlock to isolate <b>${s.zone}</b>, energise the local alarm beacon, and dispatch the standby response team. Access to the zone will be locked until manually restored by a supervisor.</div>`;
+    overlay.classList.add("show");
+    overlay.dataset.zone=i;
+  }
+  $("#mCancel").addEventListener("click",()=>overlay.classList.remove("show"));
+  overlay.addEventListener("click",e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+  $("#mConfirm").addEventListener("click",()=>{
+    const i=+overlay.dataset.zone; lockZone(i); overlay.classList.remove("show");
+  });
+
+  function lockZone(i){
+    const t=tiles[i], s=sections[i];
+    t.el.dataset.locked="1";
+    zoneEls[i].g.classList.add("locked");
+    updateZoneMap(i);
+    beep(300,4);
+    // log a system action event
+    logAction(i,"ZONE ISOLATED — ESD interlock signalled · access locked","crit");
+    if(selZone===i) renderZoneCard(i);
+  }
+  function restoreZone(i){
+    const t=tiles[i];
+    t.el.dataset.locked="";
+    zoneEls[i].g.classList.remove("locked");
+    updateZoneMap(i);
+    logAction(i,"ZONE RESTORED — isolation cleared by supervisor","low");
+    if(selZone===i) renderZoneCard(i);
+  }
+  function logAction(i,text,sevKey){
+    const sec=sections[i], id=++idc; eventCount++;
+    if(emptyState) emptyState.style.display="none";
+    const a=document.createElement("div");
+    a.className="alarm sev-"+sevKey+" acked"; a.dataset.id=id; a.dataset.cam=i;
+    a.innerHTML=`<div class="bar"></div><div>
+      <div class="top"><span class="chip">ACTION</span><span class="time">${nowStr()}</span></div>
+      <div class="desc">${text}</div>
+      <div class="cam-l"><span>${sec.code} · ${sec.zone}</span><span class="ack" style="visibility:hidden">·</span></div></div>`;
+    alist.insertBefore(a,alist.firstChild);
+    updateFooter();
+  }
+
+  /* init */
+  selectTile(0);
+  updateFooter();
+  // auto-start analysis on load (browsers may need a user gesture for audio;
+  // the beep will simply resume on first click if blocked)
+  startAnalysing();
+})();
+</script>
+</body>
+</html>
